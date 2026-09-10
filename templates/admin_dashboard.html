@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - LokDrishti</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50:  '#eef4ff',
+                            100: '#dbe6fe',
+                            200: '#bcd0fd',
+                            300: '#8fb0fb',
+                            400: '#5c88f6',
+                            500: '#3563ec',
+                            600: '#2247d9',
+                            700: '#1c38b0',
+                            800: '#182f8b',
+                            900: '#172a6e',
+                            950: '#0f1a45',
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 0.75rem;
+            z-index: 0;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 0.5rem;
+        }
+
+        /* Responsive table -> stacked cards on small screens */
+        @media (max-width: 900px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td {
+                display: block;
+                width: 100%;
+            }
+            .responsive-table tr {
+                border-radius: 0.75rem;
+                margin-bottom: 1rem;
+                padding: 0.25rem 0;
+            }
+            .responsive-table td {
+                padding: 0.6rem 1rem;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            }
+            .responsive-table td:last-child { border-bottom: none; }
+            .responsive-table td::before {
+                content: attr(data-label);
+                display: block;
+                font-weight: 600;
+                font-size: 0.75rem;
+                text-align: left;
+                color: rgb(100 116 139);
+                margin-bottom: 0.35rem;
+            }
+            .dark .responsive-table td::before { color: rgb(148 163 184); }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors">
+
+<!-- Top bar -->
+<header class="bg-gradient-to-r from-brand-800 via-brand-700 to-brand-600 dark:from-slate-900 dark:via-slate-900 dark:to-brand-950 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <img
+                id="brandLogo"
+                src="{{ url_for('static', filename='images/logo-icon-lifted.png') }}"
+                alt="LokDrishti logo"
+                class="h-12 object-contain drop-shadow shrink-0"
+            >
+            <div id="brandText">
+                <div class="flex items-baseline gap-2 flex-wrap">
+                    <span class="text-white text-xl font-extrabold tracking-tight leading-none">LokDrishti</span>
+                    <span class="text-brand-200 text-[10px] font-semibold tracking-[0.2em] uppercase">Report &middot; Monitor &middot; Resolve</span>
+                </div>
+                <p class="text-brand-100/90 text-sm mt-1.5">
+                    Admin Dashboard &middot; Logged in as <strong class="font-semibold text-white">prince</strong>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle dark mode"
+                class="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+                <svg id="icon-sun" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.364 6.364-1.06-1.06M6.696 6.696l-1.06-1.06m12.728 0-1.06 1.06M6.696 17.304l-1.06 1.06M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                </svg>
+                <svg id="icon-moon" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9-5.998Z" />
+                </svg>
+            </button>
+
+            <a href="{{ url_for('logout') }}"
+               class="inline-flex items-center gap-1.5 rounded-lg border border-white/30 text-white hover:bg-white/10 font-medium text-sm px-4 py-2.5 transition-colors">
+                Logout
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- Status filter -->
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm px-4 sm:px-6 py-4 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <form method="get" action="{{ url_for('admin_dashboard') }}" class="flex flex-wrap items-center gap-3">
+                <label for="status" class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Filter by status
+                </label>
+                <select
+                    name="status"
+                    id="status"
+                    onchange="this.form.submit()"
+                    class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                >
+                    <option value="" {% if not selected_status %}selected{% endif %}>All</option>
+                    <option value="Not Seen" {% if selected_status == "Not Seen" %}selected{% endif %}>Not Seen</option>
+                    <option value="In Progress" {% if selected_status == "In Progress" %}selected{% endif %}>In Progress</option>
+                    <option value="Completed" {% if selected_status == "Completed" %}selected{% endif %}>Completed</option>
+                </select>
+
+                <label for="sort" class="text-sm font-semibold text-slate-700 dark:text-slate-200 ml-1 sm:ml-2">
+                    Sort by
+                </label>
+                <select
+                    name="sort"
+                    id="sort"
+                    onchange="this.form.submit()"
+                    class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                >
+                    <option value="id" {% if not selected_sort or selected_sort == "id" %}selected{% endif %}>ID No.</option>
+                    <option value="resolve_date" {% if selected_sort == "resolve_date" %}selected{% endif %}>Date of Resolve</option>
+                    <option value="priority" {% if selected_sort == "priority" %}selected{% endif %}>Priority</option>
+                </select>
+
+                <select
+                    name="order"
+                    id="order"
+                    onchange="this.form.submit()"
+                    class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                >
+                    <option value="asc" {% if not selected_order or selected_order == "asc" %}selected{% endif %}>Ascending</option>
+                    <option value="desc" {% if selected_order == "desc" %}selected{% endif %}>Descending</option>
+                </select>
+            </form>
+
+            <a
+                href="{{ url_for('admin_report') }}"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 hover:bg-brand-800 text-white font-semibold text-sm px-4 py-2.5 shadow-sm transition-colors"
+            >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l3-3 3 3 5.25-5.25L18 12M3 3v16.5a1.5 1.5 0 0 0 1.5 1.5H21" />
+                </svg>
+                Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Main problem table -->
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden mb-6">
+        <div class="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70">
+            <h2 class="text-base font-bold text-slate-800 dark:text-slate-100">All Reported Problems</h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="responsive-table w-full text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">ID</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">User</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Photo</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap min-w-[240px]">Problem Description</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Category</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Date Uploaded</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Time Uploaded</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Resolve Date</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Priority</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Status</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Rating</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap min-w-[200px]">Admin Reply</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap min-w-[260px]">Update</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% if inspections %}
+                    {% for inspection in inspections %}
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors align-top">
+                        <td data-label="ID" class="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">{{ inspection.id }}</td>
+
+                        <td data-label="User" class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ inspection.user.username }}</td>
+
+                        <td data-label="Photo" class="px-4 py-3">
+                            <img
+                                src="{{ url_for('uploaded_file', filename=inspection.photo_path) }}"
+                                alt="Problem Photo"
+                                class="h-16 w-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
+                            >
+                        </td>
+
+                        <td data-label="Problem Description" class="px-4 py-3">
+                            <div class="font-semibold text-slate-800 dark:text-slate-100">
+                                {{ inspection.problem }}
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1">
+                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                                </svg>
+                                {{ inspection.latitude or 'N/A' }}, {{ inspection.longitude or 'N/A' }}
+                            </p>
+                        </td>
+
+                        <td data-label="Category" class="px-4 py-3">
+                            {% if inspection.category %}
+                                <span class="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-200 text-xs font-semibold px-2.5 py-1">
+                                    {{ inspection.category }}{% if inspection.category == "Other" and inspection.other_category %}: {{ inspection.other_category }}{% endif %}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium px-2.5 py-1">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Date and time automatically come from upload timestamp -->
+                        <td data-label="Date Uploaded" class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ inspection.timestamp.strftime('%d-%m-%Y') }}</td>
+                        <td data-label="Time Uploaded" class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ inspection.timestamp.strftime('%H:%M:%S') }}</td>
+
+                        <td data-label="Resolve Date" class="px-4 py-3">
+                            {% if inspection.resolved_date == "-" %}
+                                <span class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium px-2.5 py-1">-</span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-200 text-xs font-semibold px-2.5 py-1">
+                                    {{ inspection.resolved_date }}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Priority" class="px-4 py-3">
+                            {% if inspection.priority == "Urgent & Important" %}
+                                <span class="inline-flex items-center rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-xs font-semibold px-2.5 py-1">Urgent & Important</span>
+                            {% elif inspection.priority == "Important but Not Urgent" %}
+                                <span class="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-semibold px-2.5 py-1">Important but Not Urgent</span>
+                            {% elif inspection.priority == "Urgent but Not Important" %}
+                                <span class="inline-flex items-center rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 text-xs font-semibold px-2.5 py-1">Urgent but Not Important</span>
+                            {% elif inspection.priority == "Low Urgency & Low Impact" %}
+                                <span class="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold px-2.5 py-1">Low Urgency & Low Impact</span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium px-2.5 py-1">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Status" class="px-4 py-3">
+                            {% if inspection.status == "Not Seen" %}
+                                <span class="inline-flex items-center rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-xs font-semibold px-2.5 py-1">Not Seen</span>
+                            {% elif inspection.status == "In Progress" %}
+                                <span class="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-semibold px-2.5 py-1">In Progress</span>
+                            {% elif inspection.status == "Completed" %}
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold px-2.5 py-1">Completed</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Rating" class="px-4 py-3">
+                            {% if inspection.rating %}
+                                <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
+                                    {{ inspection.rating }}/5 ★
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium px-2.5 py-1">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Admin Reply" class="px-4 py-3">
+                            <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                                Current reply
+                            </div>
+                            <div class="rounded-lg border-l-4 border-brand-400 bg-brand-50 dark:bg-slate-800 dark:border-brand-500 px-3 py-2 text-slate-700 dark:text-slate-200 text-sm">
+                                {{ inspection.reply if inspection.reply else "No reply yet." }}
+                            </div>
+                        </td>
+
+                        <td data-label="Update" class="px-4 py-3">
+                            <form method="POST" action="{{ url_for('admin_dashboard') }}" class="space-y-2.5">
+                                <input type="hidden" name="inspection_id" value="{{ inspection.id }}">
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                                        Resolve date
+                                    </label>
+                                    <!-- HTML date picker; displayed/stored to users as DD-MM-YYYY -->
+                                    <input
+                                        type="date"
+                                        name="resolved_date"
+                                        class="resolve-date w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                                        value=""
+                                        data-current-date="{{ inspection.resolved_date if inspection.resolved_date != '-' else '' }}"
+                                    >
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                                        Status
+                                    </label>
+                                    <select name="status" class="status-select w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                                        <option value="Not Seen" {% if inspection.status == "Not Seen" %}selected{% endif %}>
+                                            Not Seen
+                                        </option>
+                                        <option value="In Progress" {% if inspection.status == "In Progress" %}selected{% endif %}>
+                                            In Progress
+                                        </option>
+                                        <option value="Completed" {% if inspection.status == "Completed" %}selected{% endif %}>
+                                            Completed
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                                        Priority
+                                    </label>
+                                    <select name="priority" class="priority-select w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                                        <option value="" {% if not inspection.priority %}selected{% endif %}>
+                                            Select priority
+                                        </option>
+                                        <option value="Urgent & Important" {% if inspection.priority == "Urgent & Important" %}selected{% endif %}>
+                                            1. Urgent &amp; Important
+                                        </option>
+                                        <option value="Important but Not Urgent" {% if inspection.priority == "Important but Not Urgent" %}selected{% endif %}>
+                                            2. Important but Not Urgent
+                                        </option>
+                                        <option value="Urgent but Not Important" {% if inspection.priority == "Urgent but Not Important" %}selected{% endif %}>
+                                            3. Urgent but Not Important
+                                        </option>
+                                        <option value="Low Urgency & Low Impact" {% if inspection.priority == "Low Urgency & Low Impact" %}selected{% endif %}>
+                                            4. Low Urgency &amp; Low Impact
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                                        Reply to user
+                                    </label>
+                                    <textarea
+                                        name="reply"
+                                        rows="3"
+                                        placeholder="Write a reply for this problem..."
+                                        class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                                    >{{ inspection.reply }}</textarea>
+                                </div>
+
+                                <button type="submit" class="w-full inline-flex items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm px-4 py-2 transition-colors">
+                                    Save Update
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="13" class="px-4 py-16 text-center text-slate-500 dark:text-slate-400">
+                            No problems found.
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+        <div class="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-brand-700 to-brand-600">
+            <h2 class="text-base font-bold text-white">Problem Locations Map</h2>
+        </div>
+
+        <div class="p-4 sm:p-6">
+            <div id="map"></div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+    const root = document.documentElement;
+    const toggleBtn = document.getElementById('theme-toggle');
+    const iconSun = document.getElementById('icon-sun');
+    const iconMoon = document.getElementById('icon-moon');
+
+    function applyTheme(isDark) {
+        root.classList.toggle('dark', isDark);
+        iconSun.classList.toggle('hidden', !isDark);
+        iconMoon.classList.toggle('hidden', isDark);
+    }
+
+    const stored = localStorage.getItem('inspection-tracker-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(stored ? stored === 'dark' : prefersDark);
+
+    toggleBtn.addEventListener('click', () => {
+        const isDark = !root.classList.contains('dark');
+        applyTheme(isDark);
+        localStorage.setItem('inspection-tracker-theme', isDark ? 'dark' : 'light');
+    });
+</script>
+
+<script>
+    var map = L.map('map').setView([23.0, 72.5], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var markers = [];
+
+    {% for i in inspections %}
+        {% if i.latitude and i.longitude %}
+            var marker = L.marker([{{ i.latitude }}, {{ i.longitude }}])
+                .addTo(map)
+                .bindPopup(
+                    "<b>ID:</b> {{ i.id }}<br>" +
+                    "<b>User:</b> {{ i.user.username }}<br>" +
+                    "<b>Problem:</b> {{ i.problem|e }}<br>" +
+                    "<b>Status:</b> {{ i.status }}<br>" +
+                    "<b>Date:</b> {{ i.timestamp.strftime('%d-%m-%Y') }}<br>" +
+                    "<b>Time:</b> {{ i.timestamp.strftime('%H:%M:%S') }}<br>" +
+                    "<img src='{{ url_for('uploaded_file', filename=i.photo_path) }}' width='120'>"
+                );
+
+            markers.push(marker);
+        {% endif %}
+    {% endfor %}
+
+    if (markers.length === 1) {
+        map.setView(markers[0].getLatLng(), 15);
+    } else if (markers.length > 1) {
+        var group = L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.2));
+    }
+
+    // Convert an existing DD-MM-YYYY value to the date input's YYYY-MM-DD format.
+    document.querySelectorAll('.resolve-date').forEach(function(input) {
+        const current = input.dataset.currentDate;
+
+        if (current && current !== '-') {
+            const parts = current.split('-');
+
+            if (parts.length === 3) {
+                input.value = parts[2] + '-' + parts[1] + '-' + parts[0];
+            }
+        }
+
+        const form = input.closest('form');
+        const status = form.querySelector('.status-select');
+
+        input.addEventListener('change', function() {
+            if (this.value && status.value === 'Not Seen') {
+                status.value = 'In Progress';
+            }
+        });
+    });
+</script>
+
+<!-- Live updates: poll for changes and reload automatically, but only
+     when the admin isn't currently focused in one of the per-row edit
+     forms (resolve date / status / priority / reply), so nothing typed
+     gets wiped out mid-edit. -->
+<script>
+    let currentVersion = {{ version | tojson }};
+    const ADMIN_POLL_MS = 1000;
+
+    function adminIsMidEdit() {
+        const active = document.activeElement;
+        return !!(active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName));
+    }
+
+    async function checkAdminDashboardForUpdates() {
+        try {
+            const res = await fetch("{{ url_for('admin_dashboard_version') }}", {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+
+            if (data.version !== currentVersion && !adminIsMidEdit()) {
+                location.reload();
+            }
+        } catch (err) {
+            // Network hiccup — just try again on the next tick.
+        }
+    }
+
+    setInterval(checkAdminDashboardForUpdates, ADMIN_POLL_MS);
+</script>
+
+<!-- Size the logo so its width exactly matches the width of the
+     brand text block beside it. -->
+<script>
+    function syncLogoWidth() {
+        const img = document.getElementById('brandLogo');
+        const text = document.getElementById('brandText');
+        if (!img || !text) return;
+        const targetWidth = text.offsetWidth;
+        if (targetWidth > 0) {
+            img.style.width = targetWidth + 'px';
+            img.style.height = 'auto';
+        }
+    }
+    window.addEventListener('load', syncLogoWidth);
+    window.addEventListener('resize', syncLogoWidth);
+</script>
+
+</body>
+</html>

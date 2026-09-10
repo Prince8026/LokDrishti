@@ -1,0 +1,586 @@
+<!-- upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report a Problem - LokDrishti</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50:  '#eef4ff',
+                            100: '#dbe6fe',
+                            200: '#bcd0fd',
+                            300: '#8fb0fb',
+                            400: '#5c88f6',
+                            500: '#3563ec',
+                            600: '#2247d9',
+                            700: '#1c38b0',
+                            800: '#182f8b',
+                            900: '#172a6e',
+                            950: '#0f1a45',
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+
+        #location-map {
+            height: 320px;
+            width: 100%;
+            border-radius: 0.75rem;
+            z-index: 0;
+        }
+
+        @media (min-width: 640px) {
+            #location-map { height: 380px; }
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 0.5rem;
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 1rem;
+            height: 1rem;
+            border-radius: 9999px;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            animation: spin 0.75s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Category tiles */
+        .category-tile {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgb(203 213 225);
+            background: #fff;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: border-color .15s ease, background-color .15s ease;
+        }
+        .dark .category-tile {
+            border-color: rgb(51 65 85);
+            background: rgb(30 41 59);
+        }
+        .category-tile:hover {
+            border-color: #5c88f6;
+        }
+        .category-tile.selected {
+            border-color: #3563ec;
+            background: #eef4ff;
+        }
+        .dark .category-tile.selected {
+            background: rgba(15, 26, 69, 0.4);
+            border-color: #5c88f6;
+        }
+        .category-checkbox {
+            accent-color: #2247d9;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors">
+
+<!-- Top bar -->
+<header class="bg-gradient-to-r from-brand-800 via-brand-700 to-brand-600 dark:from-slate-900 dark:via-slate-900 dark:to-brand-950 shadow-sm">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <img
+                id="brandLogo"
+                src="{{ url_for('static', filename='images/logo-icon-lifted.png') }}"
+                alt="LokDrishti logo"
+                class="h-12 object-contain drop-shadow shrink-0"
+            >
+            <div id="brandText">
+                <div class="flex items-baseline gap-2 flex-wrap">
+                    <span class="text-white text-xl font-extrabold tracking-tight leading-none">LokDrishti</span>
+                    <span class="text-brand-200 text-[10px] font-semibold tracking-[0.2em] uppercase">Report &middot; Monitor &middot; Resolve</span>
+                </div>
+                <p class="text-brand-100/90 text-sm mt-1.5">Report a Problem</p>
+            </div>
+        </div>
+
+        <button
+            id="theme-toggle"
+            type="button"
+            aria-label="Toggle dark mode"
+            class="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors shrink-0"
+        >
+            <svg id="icon-sun" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.364 6.364-1.06-1.06M6.696 6.696l-1.06-1.06m12.728 0-1.06 1.06M6.696 17.304l-1.06 1.06M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+            </svg>
+            <svg id="icon-moon" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9-5.998Z" />
+            </svg>
+        </button>
+    </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+
+    <div class="mb-4">
+        <a href="{{ url_for('dashboard') }}"
+           class="inline-flex items-center gap-1.5 text-brand-600 dark:text-brand-300 font-semibold text-sm hover:underline">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+
+        <div class="px-4 sm:px-6 py-4 bg-gradient-to-r from-brand-700 to-brand-600">
+            <h2 class="text-white text-lg font-bold flex items-center gap-2">
+                <span>📍</span> Report a New Problem
+            </h2>
+        </div>
+
+        <div class="p-4 sm:p-6">
+
+            <!-- Location status -->
+            <div id="location-alert"
+                 class="flex items-start gap-3 rounded-xl border border-brand-200 dark:border-brand-900/60 bg-brand-50 dark:bg-brand-950/40 text-brand-900 dark:text-brand-200 px-4 py-3.5 mb-4">
+
+                <div id="location-spinner" class="spinner mt-0.5 shrink-0"></div>
+
+                <span id="location-status-text" class="text-sm leading-relaxed">
+                    Requesting your location... please allow location access.
+                </span>
+            </div>
+
+            <!-- GPS Map -->
+            <div class="mb-2">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-200">
+                        Confirm exact location
+                    </label>
+                    <button
+                        type="button"
+                        id="use-my-location"
+                        class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 dark:text-brand-300 hover:underline"
+                    >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                        </svg>
+                        Use my location
+                    </button>
+                </div>
+
+                <div id="location-map" class="border border-slate-200 dark:border-slate-700"></div>
+
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                    Drag the pin — or tap anywhere on the map — to mark the exact spot of the problem.
+                </p>
+            </div>
+
+            <p id="pin-coords" class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-6">
+                No pin placed yet.
+            </p>
+
+            <form action="{{ url_for('upload') }}"
+                  method="POST"
+                  enctype="multipart/form-data">
+
+                <input type="hidden" name="lat" id="lat">
+                <input type="hidden" name="lon" id="lon">
+
+                <!-- Problem description -->
+                <div class="mb-4">
+                    <label for="problem" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                        Describe the problem
+                    </label>
+
+                    <textarea
+                        name="problem"
+                        id="problem"
+                        rows="4"
+                        placeholder="Provide clear details about the issue..."
+                        required
+                        class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    ></textarea>
+                </div>
+
+                <!-- Category -->
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                        Category
+                    </label>
+
+                    <input type="hidden" name="category" id="category-value">
+
+                    <div id="category-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <label class="category-tile" data-category="Potholes and street damage">
+                            <input type="checkbox" class="category-checkbox h-4 w-4 rounded shrink-0">
+                            <span class="text-slate-700 dark:text-slate-200">Potholes and street damage</span>
+                        </label>
+
+                        <label class="category-tile" data-category="Missed garbage collection">
+                            <input type="checkbox" class="category-checkbox h-4 w-4 rounded shrink-0">
+                            <span class="text-slate-700 dark:text-slate-200">Missed garbage collection</span>
+                        </label>
+
+                        <label class="category-tile" data-category="Illegal dumping and littering">
+                            <input type="checkbox" class="category-checkbox h-4 w-4 rounded shrink-0">
+                            <span class="text-slate-700 dark:text-slate-200">Illegal dumping and littering</span>
+                        </label>
+
+                        <label class="category-tile" data-category="Streetlight outages">
+                            <input type="checkbox" class="category-checkbox h-4 w-4 rounded shrink-0">
+                            <span class="text-slate-700 dark:text-slate-200">Streetlight outages</span>
+                        </label>
+
+                        <label class="category-tile" data-category="Parking violations and blocked driveways">
+                            <input type="checkbox" class="category-checkbox h-4 w-4 rounded shrink-0">
+                            <span class="text-slate-700 dark:text-slate-200">Parking violations and blocked driveways</span>
+                        </label>
+
+                        <label class="category-tile" data-category="Other" id="category-other-tile">
+                            <input type="checkbox" class="category-checkbox h-4 w-4 rounded shrink-0" id="category-other-checkbox">
+                            <span class="text-slate-700 dark:text-slate-200">Other</span>
+                        </label>
+                    </div>
+
+                    <div id="other-category-wrap" class="hidden mt-2.5">
+                        <input
+                            type="text"
+                            name="other_category"
+                            id="other_category"
+                            placeholder="Please describe the problem category..."
+                            class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                        >
+                    </div>
+
+                    <p id="category-error" class="hidden text-xs text-rose-600 dark:text-rose-400 mt-1.5">
+                        Please select a category.
+                    </p>
+                </div>
+
+                <!-- Photo -->
+                <div class="mb-4">
+                    <label for="photo" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                        Upload Problem Photo
+                    </label>
+
+                    <input
+                        type="file"
+                        name="photo"
+                        id="photo"
+                        accept="image/*"
+                        required
+                        class="w-full text-sm text-slate-600 dark:text-slate-300 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 file:mr-4 file:py-2.5 file:px-3.5 file:rounded-l-lg file:border-0 file:bg-brand-600 file:text-white file:font-semibold file:text-sm hover:file:bg-brand-700 file:cursor-pointer cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    >
+
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                        Images help the administrator identify the issue.
+                    </p>
+                </div>
+
+                <!-- Status -->
+                <div class="mb-4">
+                    <label for="status" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                        Status
+                    </label>
+
+                    <select id="status" disabled class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-sm px-3.5 py-2.5 cursor-not-allowed">
+                        <option selected>Not Seen</option>
+                        <option>In Progress</option>
+                        <option>Completed</option>
+                    </select>
+
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                        New problems are automatically submitted as <strong class="font-semibold text-slate-600 dark:text-slate-300">Not Seen</strong>.
+                        Only the administrator can change the status.
+                    </p>
+                </div>
+
+                <!-- Resolve date -->
+                <div class="mb-6">
+                    <label for="resolved_date" class="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                        Date of Resolve
+                    </label>
+
+                    <input
+                        type="text"
+                        id="resolved_date"
+                        value="-"
+                        readonly
+                        class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-sm px-3.5 py-2.5 cursor-not-allowed"
+                    >
+
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                        This remains "-" until the administrator decides a resolve date.
+                    </p>
+                </div>
+
+                <button
+                    type="submit"
+                    id="submit-btn"
+                    disabled
+                    class="w-full inline-flex items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold text-base px-4 py-3 transition-colors"
+                >
+                    Submit Problem Report
+                </button>
+
+            </form>
+
+        </div>
+    </div>
+</main>
+
+<script>
+    // Theme toggle
+    const root = document.documentElement;
+    const toggleBtn = document.getElementById('theme-toggle');
+    const iconSun = document.getElementById('icon-sun');
+    const iconMoon = document.getElementById('icon-moon');
+
+    function applyTheme(isDark) {
+        root.classList.toggle('dark', isDark);
+        iconSun.classList.toggle('hidden', !isDark);
+        iconMoon.classList.toggle('hidden', isDark);
+    }
+
+    const storedTheme = localStorage.getItem('inspection-tracker-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(storedTheme ? storedTheme === 'dark' : prefersDark);
+
+    toggleBtn.addEventListener('click', () => {
+        const isDark = !root.classList.contains('dark');
+        applyTheme(isDark);
+        localStorage.setItem('inspection-tracker-theme', isDark ? 'dark' : 'light');
+    });
+</script>
+
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+
+        const alertBox = document.getElementById('location-alert');
+        const spinner = document.getElementById('location-spinner');
+        const statusText = document.getElementById('location-status-text');
+        const latInput = document.getElementById('lat');
+        const lonInput = document.getElementById('lon');
+        const submitBtn = document.getElementById('submit-btn');
+        const pinCoords = document.getElementById('pin-coords');
+        const useMyLocationBtn = document.getElementById('use-my-location');
+
+        const DEFAULT_CENTER = [23.0225, 72.5714]; // fallback view (Ahmedabad) until GPS/pin is set
+        let map = null;
+        let marker = null;
+
+        function setAlertState(state) {
+            alertBox.classList.remove(
+                'border-brand-200', 'bg-brand-50', 'text-brand-900',
+                'dark:border-brand-900/60', 'dark:bg-brand-950/40', 'dark:text-brand-200',
+                'border-emerald-200', 'bg-emerald-50', 'text-emerald-900',
+                'dark:border-emerald-900/60', 'dark:bg-emerald-950/40', 'dark:text-emerald-200',
+                'border-amber-200', 'bg-amber-50', 'text-amber-900',
+                'dark:border-amber-900/60', 'dark:bg-amber-950/40', 'dark:text-amber-200',
+                'border-rose-200', 'bg-rose-50', 'text-rose-900',
+                'dark:border-rose-900/60', 'dark:bg-rose-950/40', 'dark:text-rose-200'
+            );
+
+            if (state === 'success') {
+                alertBox.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'dark:border-emerald-900/60', 'dark:bg-emerald-950/40', 'dark:text-emerald-200');
+            } else if (state === 'warning') {
+                alertBox.classList.add('border-amber-200', 'bg-amber-50', 'text-amber-900', 'dark:border-amber-900/60', 'dark:bg-amber-950/40', 'dark:text-amber-200');
+            } else if (state === 'danger') {
+                alertBox.classList.add('border-rose-200', 'bg-rose-50', 'text-rose-900', 'dark:border-rose-900/60', 'dark:bg-rose-950/40', 'dark:text-rose-200');
+            } else {
+                alertBox.classList.add('border-brand-200', 'bg-brand-50', 'text-brand-900', 'dark:border-brand-900/60', 'dark:bg-brand-950/40', 'dark:text-brand-200');
+            }
+        }
+
+        function updateCoordsFrom(latlng) {
+            latInput.value = latlng.lat;
+            lonInput.value = latlng.lng;
+
+            pinCoords.innerHTML =
+                '<strong>Pinned location:</strong> ' + latlng.lat.toFixed(6) + ', ' + latlng.lng.toFixed(6);
+
+            submitBtn.disabled = false;
+        }
+
+        function initMap(center, accurate) {
+            if (map) return; // only initialize once
+
+            map = L.map('location-map').setView(center, accurate ? 17 : 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            marker = L.marker(center, { draggable: true }).addTo(map);
+
+            marker.on('dragend', () => {
+                updateCoordsFrom(marker.getLatLng());
+            });
+
+            map.on('click', (e) => {
+                marker.setLatLng(e.latlng);
+                updateCoordsFrom(e.latlng);
+            });
+
+            if (accurate) {
+                updateCoordsFrom(marker.getLatLng());
+            }
+
+            // Leaflet needs a nudge to size correctly inside dynamic layouts
+            setTimeout(() => map.invalidateSize(), 200);
+        }
+
+        function locateUser() {
+            spinner.classList.remove('hidden');
+            setAlertState('info');
+            statusText.textContent = 'Requesting your location... please allow location access.';
+
+            if (!navigator.geolocation) {
+                spinner.classList.add('hidden');
+                setAlertState('danger');
+                statusText.textContent = '❌ Geolocation is not supported by your browser. Place the pin manually on the map below.';
+                initMap(DEFAULT_CENTER, false);
+                submitBtn.disabled = false;
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const center = [position.coords.latitude, position.coords.longitude];
+
+                    spinner.classList.add('hidden');
+                    setAlertState('success');
+                    statusText.innerHTML =
+                        '<strong>Location Locked:</strong> ' +
+                        position.coords.latitude.toFixed(5) + ', ' + position.coords.longitude.toFixed(5) +
+                        ' — drag the pin below for pinpoint accuracy.';
+
+                    if (map && marker) {
+                        map.setView(center, 17);
+                        marker.setLatLng(center);
+                        updateCoordsFrom(marker.getLatLng());
+                    } else {
+                        initMap(center, true);
+                    }
+                },
+                (error) => {
+                    spinner.classList.add('hidden');
+                    setAlertState('warning');
+
+                    if (error.code === error.PERMISSION_DENIED) {
+                        statusText.textContent = '⚠️ Location permission denied. Tap or drag the pin on the map to set it manually.';
+                    } else {
+                        statusText.textContent = '⚠️ Could not capture GPS coordinates. Tap or drag the pin on the map to set it manually.';
+                    }
+
+                    if (!map) {
+                        initMap(DEFAULT_CENTER, false);
+                    }
+
+                    submitBtn.disabled = false;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 8000
+                }
+            );
+        }
+
+        useMyLocationBtn.addEventListener('click', locateUser);
+
+        locateUser();
+    });
+</script>
+<script>
+    (function() {
+        const tiles = document.querySelectorAll('.category-tile');
+        const checkboxes = document.querySelectorAll('.category-checkbox');
+        const categoryValueInput = document.getElementById('category-value');
+        const otherWrap = document.getElementById('other-category-wrap');
+        const otherInput = document.getElementById('other_category');
+        const categoryError = document.getElementById('category-error');
+        const otherCheckbox = document.getElementById('category-other-checkbox');
+
+        checkboxes.forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                if (this.checked) {
+                    checkboxes.forEach(function(other) {
+                        if (other !== cb) other.checked = false;
+                    });
+                    categoryValueInput.value = this.closest('.category-tile').dataset.category;
+                    categoryError.classList.add('hidden');
+                } else {
+                    categoryValueInput.value = '';
+                }
+
+                tiles.forEach(function(tile) {
+                    const box = tile.querySelector('.category-checkbox');
+                    tile.classList.toggle('selected', box.checked);
+                });
+
+                if (otherCheckbox.checked) {
+                    otherWrap.classList.remove('hidden');
+                    otherInput.setAttribute('required', 'required');
+                } else {
+                    otherWrap.classList.add('hidden');
+                    otherInput.removeAttribute('required');
+                    otherInput.value = '';
+                }
+            });
+        });
+
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (!categoryValueInput.value) {
+                e.preventDefault();
+                categoryError.classList.remove('hidden');
+                document.getElementById('category-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    })();
+</script>
+
+<!-- Size the logo so its width exactly matches the width of the
+     brand text block beside it. -->
+<script>
+    function syncLogoWidth() {
+        const img = document.getElementById('brandLogo');
+        const text = document.getElementById('brandText');
+        if (!img || !text) return;
+        const targetWidth = text.offsetWidth;
+        if (targetWidth > 0) {
+            img.style.width = targetWidth + 'px';
+            img.style.height = 'auto';
+        }
+    }
+    window.addEventListener('load', syncLogoWidth);
+    window.addEventListener('resize', syncLogoWidth);
+</script>
+
+</body>
+</html>
