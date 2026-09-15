@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytical Report - LokDrishti</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50:  '#eef4ff',
+                            100: '#dbe6fe',
+                            200: '#bcd0fd',
+                            300: '#8fb0fb',
+                            400: '#5c88f6',
+                            500: '#3563ec',
+                            600: '#2247d9',
+                            700: '#1c38b0',
+                            800: '#182f8b',
+                            900: '#172a6e',
+                            950: '#0f1a45',
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+
+        /* Responsive table -> stacked cards on small screens */
+        @media (max-width: 900px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td {
+                display: block;
+                width: 100%;
+            }
+            .responsive-table tr {
+                border-radius: 0.75rem;
+                margin-bottom: 1rem;
+                padding: 0.25rem 0;
+            }
+            .responsive-table td {
+                padding: 0.6rem 1rem;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            }
+            .responsive-table td:last-child { border-bottom: none; }
+            .responsive-table td::before {
+                content: attr(data-label);
+                display: block;
+                font-weight: 600;
+                font-size: 0.75rem;
+                text-align: left;
+                color: rgb(100 116 139);
+                margin-bottom: 0.35rem;
+            }
+            .dark .responsive-table td::before { color: rgb(148 163 184); }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors">
+
+<!-- Top bar -->
+<header class="bg-gradient-to-r from-brand-800 via-brand-700 to-brand-600 dark:from-slate-900 dark:via-slate-900 dark:to-brand-950 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <img
+                id="brandLogo"
+                src="{{ url_for('static', filename='images/logo-icon-lifted.png') }}"
+                alt="LokDrishti logo"
+                class="h-12 object-contain drop-shadow shrink-0"
+            >
+            <div id="brandText">
+                <div class="flex items-baseline gap-2 flex-wrap">
+                    <span class="text-white text-xl font-extrabold tracking-tight leading-none">LokDrishti</span>
+                    <span class="text-brand-200 text-[10px] font-semibold tracking-[0.2em] uppercase">Report &middot; Monitor &middot; Resolve</span>
+                </div>
+                <p class="text-brand-100/90 text-sm mt-1.5">
+                    Analytical Report &middot; Logged in as <strong class="font-semibold text-white">prince</strong>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button
+                id="theme-toggle"
+                type="button"
+                aria-label="Toggle dark mode"
+                class="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+                <svg id="icon-sun" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1.5m0 15V21m9-9h-1.5M4.5 12H3m15.364 6.364-1.06-1.06M6.696 6.696l-1.06-1.06m12.728 0-1.06 1.06M6.696 17.304l-1.06 1.06M16.5 12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                </svg>
+                <svg id="icon-moon" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9-5.998Z" />
+                </svg>
+            </button>
+
+            <a href="{{ url_for('logout') }}"
+               class="inline-flex items-center gap-1.5 rounded-lg border border-white/30 text-white hover:bg-white/10 font-medium text-sm px-4 py-2.5 transition-colors">
+                Logout
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- ===================== ANALYTICAL REPORT (TOP) ===================== -->
+
+    <!-- Stat cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5">
+            <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total Problems</p>
+                <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 8.25h16.5M5.25 19.5h13.5A1.5 1.5 0 0 0 20.25 18V6A1.5 1.5 0 0 0 18.75 4.5H5.25A1.5 1.5 0 0 0 3.75 6v12a1.5 1.5 0 0 0 1.5 1.5Z" />
+                    </svg>
+                </span>
+            </div>
+            <p class="text-3xl font-extrabold text-slate-800 dark:text-slate-100 mt-3">{{ analytics.total }}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ analytics.completion_rate }}% resolved overall</p>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5">
+            <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Pending (Not Seen)</p>
+                <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                </span>
+            </div>
+            <p class="text-3xl font-extrabold text-slate-800 dark:text-slate-100 mt-3">{{ analytics.status_counts[0] }}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Awaiting admin review</p>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5">
+            <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">In Progress</p>
+                <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z" />
+                    </svg>
+                </span>
+            </div>
+            <p class="text-3xl font-extrabold text-slate-800 dark:text-slate-100 mt-3">{{ analytics.status_counts[1] }}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Being worked on</p>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5">
+            <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Resolved</p>
+                <span class="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                </span>
+            </div>
+            <p class="text-3xl font-extrabold text-slate-800 dark:text-slate-100 mt-3">{{ analytics.status_counts[2] }}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                {% if analytics.avg_rating %}Avg. rating {{ analytics.avg_rating }}/5 ★ ({{ analytics.rated_count }} rated){% else %}No ratings yet{% endif %}
+            </p>
+        </div>
+
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5">
+            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Status Breakdown</h3>
+            <div class="h-64">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5">
+            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Priority Breakdown</h3>
+            <div class="h-64">
+                <canvas id="priorityChart"></canvas>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 lg:col-span-2">
+            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Problems by Category</h3>
+            <div class="h-80">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 lg:col-span-2">
+            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4">User Satisfaction (Ratings)</h3>
+
+            <div class="flex flex-col sm:flex-row items-center sm:items-stretch gap-6 sm:gap-10">
+
+                <!-- Big average score, Play Store style -->
+                <div class="flex flex-col items-center justify-center sm:w-44 shrink-0 sm:border-r sm:border-slate-100 dark:sm:border-slate-800 sm:pr-8">
+                    <p class="text-6xl font-extrabold text-slate-800 dark:text-slate-100 leading-none">
+                        {{ analytics.avg_rating if analytics.avg_rating else "–" }}
+                    </p>
+                    <div class="flex items-center gap-0.5 mt-3">
+                        {% for i in range(1, 6) %}
+                            <svg class="h-5 w-5 {% if analytics.avg_rating and i <= analytics.avg_rating %}text-amber-400{% else %}text-slate-300 dark:text-slate-700{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.956a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.447a1 1 0 00-.364 1.118l1.286 3.955c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.955a1 1 0 00-.364-1.118L2.05 9.383c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.956z" />
+                            </svg>
+                        {% endfor %}
+                    </div>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                        {{ analytics.rated_count }} rating{{ 's' if analytics.rated_count != 1 else '' }}
+                    </p>
+                </div>
+
+                <!-- Horizontal bar breakdown, 5★ on top -->
+                <div class="flex-1 h-56">
+                    <canvas id="ratingChart"></canvas>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===================== FILTER / SORT BAR ===================== -->
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm px-4 sm:px-6 py-4 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <form method="get" action="{{ url_for('admin_report') }}" class="flex flex-wrap items-center gap-3">
+                <label for="status" class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Filter by status
+                </label>
+                <select
+                    name="status"
+                    id="status"
+                    onchange="this.form.submit()"
+                    class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                >
+                    <option value="" {% if not selected_status %}selected{% endif %}>All</option>
+                    <option value="Not Seen" {% if selected_status == "Not Seen" %}selected{% endif %}>Not Seen</option>
+                    <option value="In Progress" {% if selected_status == "In Progress" %}selected{% endif %}>In Progress</option>
+                    <option value="Completed" {% if selected_status == "Completed" %}selected{% endif %}>Completed</option>
+                </select>
+
+                <label for="sort" class="text-sm font-semibold text-slate-700 dark:text-slate-200 ml-1 sm:ml-2">
+                    Sort by
+                </label>
+                <select
+                    name="sort"
+                    id="sort"
+                    onchange="this.form.submit()"
+                    class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                >
+                    <option value="id" {% if not selected_sort or selected_sort == "id" %}selected{% endif %}>ID No.</option>
+                    <option value="resolve_date" {% if selected_sort == "resolve_date" %}selected{% endif %}>Date of Resolve</option>
+                    <option value="priority" {% if selected_sort == "priority" %}selected{% endif %}>Priority</option>
+                </select>
+
+                <select
+                    name="order"
+                    id="order"
+                    onchange="this.form.submit()"
+                    class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                >
+                    <option value="asc" {% if not selected_order or selected_order == "asc" %}selected{% endif %}>Ascending</option>
+                    <option value="desc" {% if selected_order == "desc" %}selected{% endif %}>Descending</option>
+                </select>
+            </form>
+
+            <a
+                href="{{ url_for('admin_dashboard') }}"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-brand-500 text-brand-600 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-950/40 font-semibold text-sm px-4 py-2.5 transition-colors"
+            >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
+                Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- ===================== PROBLEM LIST (READ-ONLY) ===================== -->
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden mb-6">
+        <div class="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70">
+            <h2 class="text-base font-bold text-slate-800 dark:text-slate-100">All Reported Problems</h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="responsive-table w-full text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">ID</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">User</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Photo</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap min-w-[240px]">Problem Description</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Category</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Date Uploaded</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Time Uploaded</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Resolve Date</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Priority</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Status</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap">Rating</th>
+                        <th class="text-left font-semibold px-4 py-3 whitespace-nowrap min-w-[220px]">Admin Reply</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% if inspections %}
+                    {% for inspection in inspections %}
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors align-top">
+                        <td data-label="ID" class="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">{{ inspection.id }}</td>
+
+                        <td data-label="User" class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ inspection.user.username }}</td>
+
+                        <td data-label="Photo" class="px-4 py-3">
+                            {% if inspection.photo_path %}
+                                <img
+                                    src="{{ url_for('uploaded_file', filename=inspection.photo_path) }}"
+                                    alt="Problem Photo"
+                                    class="h-16 w-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
+                                >
+                            {% else %}
+                                <span class="text-slate-400 dark:text-slate-500 text-xs">No Image</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Problem Description" class="px-4 py-3">
+                            <div class="font-semibold text-slate-800 dark:text-slate-100">
+                                {{ inspection.problem if inspection.problem else "No description provided." }}
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1">
+                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                                </svg>
+                                {{ inspection.latitude or 'N/A' }}, {{ inspection.longitude or 'N/A' }}
+                            </p>
+                        </td>
+
+                        <td data-label="Category" class="px-4 py-3">
+                            {% if inspection.category %}
+                                <span class="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-200 text-xs font-semibold px-2.5 py-1">
+                                    {{ inspection.category }}{% if inspection.category == "Other" and inspection.other_category %}: {{ inspection.other_category }}{% endif %}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium px-2.5 py-1">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Date Uploaded" class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ inspection.timestamp.strftime('%d-%m-%Y') }}</td>
+                        <td data-label="Time Uploaded" class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ inspection.timestamp.strftime('%H:%M:%S') }}</td>
+
+                        <td data-label="Resolve Date" class="px-4 py-3">
+                            {% if inspection.resolved_date == "-" %}
+                                <span class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium px-2.5 py-1">-</span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-800 dark:text-brand-200 text-xs font-semibold px-2.5 py-1">
+                                    {{ inspection.resolved_date }}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Priority" class="px-4 py-3">
+                            {% if inspection.priority == "Urgent & Important" %}
+                                <span class="inline-flex items-center rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-xs font-semibold px-2.5 py-1">Urgent & Important</span>
+                            {% elif inspection.priority == "Important but Not Urgent" %}
+                                <span class="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-semibold px-2.5 py-1">Important but Not Urgent</span>
+                            {% elif inspection.priority == "Urgent but Not Important" %}
+                                <span class="inline-flex items-center rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 text-xs font-semibold px-2.5 py-1">Urgent but Not Important</span>
+                            {% elif inspection.priority == "Low Urgency & Low Impact" %}
+                                <span class="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold px-2.5 py-1">Low Urgency & Low Impact</span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium px-2.5 py-1">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Status" class="px-4 py-3">
+                            {% if inspection.status == "Not Seen" %}
+                                <span class="inline-flex items-center rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-xs font-semibold px-2.5 py-1">Not Seen</span>
+                            {% elif inspection.status == "In Progress" %}
+                                <span class="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-semibold px-2.5 py-1">In Progress</span>
+                            {% elif inspection.status == "Completed" %}
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold px-2.5 py-1">Completed</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Rating" class="px-4 py-3">
+                            {% if inspection.rating %}
+                                <button
+                                    type="button"
+                                    onclick="openViewModal({{ inspection.id }})"
+                                    class="inline-flex items-center gap-1.5 rounded-lg border border-amber-400 text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 font-semibold text-xs px-3 py-2 transition-colors"
+                                >
+                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.956a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.447a1 1 0 00-.364 1.118l1.286 3.955c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.955a1 1 0 00-.364-1.118L2.05 9.383c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.956z" />
+                                    </svg>
+                                    {{ inspection.rating }}/5
+                                </button>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium px-2.5 py-1">Not rated</span>
+                            {% endif %}
+                        </td>
+
+                        <td data-label="Admin Reply" class="px-4 py-3">
+                            <div class="rounded-lg border-l-4 border-brand-400 bg-brand-50 dark:bg-slate-800 dark:border-brand-500 px-3 py-2 text-slate-700 dark:text-slate-200 text-sm">
+                                {{ inspection.reply if inspection.reply else "No reply yet." }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="12" class="px-4 py-16 text-center text-slate-500 dark:text-slate-400">
+                            No problems found.
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<!-- Read-only rating view modals (kept outside the table — invalid table children get stripped by the browser) -->
+{% for inspection in inspections %}
+    {% if inspection.rating %}
+    <div
+        id="view-modal-{{ inspection.id }}"
+        class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4"
+        onclick="if (event.target === this) closeViewModal({{ inspection.id }})"
+    >
+        <div class="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
+
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+                <h3 class="text-base font-bold text-slate-800 dark:text-slate-100">Problem #{{ inspection.id }} rating</h3>
+                <button type="button" onclick="closeViewModal({{ inspection.id }})" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-5 py-5">
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Rated by {{ inspection.user.username }}</p>
+                <div class="flex items-center gap-1 mb-4">
+                    {% for i in range(1, 6) %}
+                        <svg class="h-6 w-6 {% if i <= inspection.rating %}text-amber-400{% else %}text-slate-300 dark:text-slate-700{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.956a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.447a1 1 0 00-.364 1.118l1.286 3.955c.3.922-.755 1.688-1.539 1.118l-3.367-2.446a1 1 0 00-1.175 0l-3.367 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.955a1 1 0 00-.364-1.118L2.05 9.383c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.956z" />
+                        </svg>
+                    {% endfor %}
+                    <span class="ml-1 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ inspection.rating }}/5</span>
+                </div>
+
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Feedback</p>
+                <p class="text-sm text-slate-700 dark:text-slate-200">
+                    {{ inspection.rating_comment if inspection.rating_comment else "No description provided." }}
+                </p>
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+
+<script>
+    const root = document.documentElement;
+    const toggleBtn = document.getElementById('theme-toggle');
+    const iconSun = document.getElementById('icon-sun');
+    const iconMoon = document.getElementById('icon-moon');
+
+    function applyTheme(isDark) {
+        root.classList.toggle('dark', isDark);
+        iconSun.classList.toggle('hidden', !isDark);
+        iconMoon.classList.toggle('hidden', isDark);
+    }
+
+    const stored = localStorage.getItem('inspection-tracker-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(stored ? stored === 'dark' : prefersDark);
+
+    toggleBtn.addEventListener('click', () => {
+        const isDark = !root.classList.contains('dark');
+        applyTheme(isDark);
+        localStorage.setItem('inspection-tracker-theme', isDark ? 'dark' : 'light');
+    });
+</script>
+
+<script>
+    function openViewModal(id) {
+        const modal = document.getElementById('view-modal-' + id);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closeViewModal(id) {
+        const modal = document.getElementById('view-modal-' + id);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+</script>
+
+<script>
+    const isDarkNow = document.documentElement.classList.contains('dark');
+    const gridColor = isDarkNow ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.12)';
+    const tickColor = isDarkNow ? '#94a3b8' : '#64748b';
+
+    // If the Chart.js CDN script didn't load (blocked network, ad-blocker,
+    // no internet on this machine, etc.) every canvas below would otherwise
+    // just stay blank with no clue why. Surface it instead of failing silently.
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js failed to load from the CDN — all charts on this page will be blank.');
+        document.querySelectorAll('#statusChart, #priorityChart, #categoryChart, #ratingChart').forEach((canvas) => {
+            const wrap = canvas.parentElement;
+            wrap.innerHTML = '<p class="h-full flex items-center justify-center text-center text-xs text-rose-500 px-4">Chart library failed to load (check internet access / the browser console).</p>';
+        });
+    } else {
+
+    Chart.defaults.font.family = "'Inter', ui-sans-serif, system-ui, sans-serif";
+    Chart.defaults.color = tickColor;
+
+    // Draws "xx%" centered inside each doughnut slice. No extra library
+    // needed (chartjs-plugin-datalabels would be one more CDN to depend on) —
+    // this just uses the arc geometry Chart.js already computes.
+    const slicePercentPlugin = {
+        id: 'slicePercentPlugin',
+        afterDraw(chart) {
+            const meta = chart.getDatasetMeta(0);
+            const values = chart.data.datasets[0].data;
+            const total = values.reduce((sum, v) => sum + v, 0);
+            if (!total) return;
+
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = "bold 12px 'Inter', ui-sans-serif, system-ui, sans-serif";
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            meta.data.forEach((arc, i) => {
+                const value = values[i];
+                if (!value) return; // skip empty slices — no arc to label
+
+                const percent = Math.round((value / total) * 100);
+                const angle = (arc.startAngle + arc.endAngle) / 2;
+                const radius = (arc.innerRadius + arc.outerRadius) / 2;
+                const x = arc.x + Math.cos(angle) * radius;
+                const y = arc.y + Math.sin(angle) * radius;
+
+                ctx.fillText(percent + '%', x, y);
+            });
+
+            ctx.restore();
+        }
+    };
+
+    // ---- Status Breakdown (doughnut) ----
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ analytics.status_labels | tojson }},
+            datasets: [{
+                data: {{ analytics.status_counts | tojson }},
+                backgroundColor: ['#f43f5e', '#f59e0b', '#10b981'],
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 16 } }
+            }
+        },
+        plugins: [slicePercentPlugin]
+    });
+
+    // ---- Priority Breakdown (horizontal bar) ----
+    new Chart(document.getElementById('priorityChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ analytics.priority_labels | tojson }},
+            datasets: [{
+                label: 'Problems',
+                data: {{ analytics.priority_counts | tojson }},
+                backgroundColor: ['#f43f5e', '#f59e0b', '#0ea5e9', '#64748b', '#cbd5e1'],
+                borderRadius: 6,
+                maxBarThickness: 28,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gridColor } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+
+    // ---- Category Breakdown (bar) ----
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ analytics.category_labels | tojson }},
+            datasets: [{
+                label: 'Problems',
+                data: {{ analytics.category_counts | tojson }},
+                backgroundColor: '#3563ec',
+                borderRadius: 6,
+                maxBarThickness: 46,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 40,
+                        minRotation: 40,
+                        crossAlign: 'far',
+                        font: { size: 11 }
+                    }
+                },
+                y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gridColor } }
+            }
+        }
+    });
+
+    // ---- Ratings (horizontal bar, Play Store style — 5★ on top) ----
+    const ratingLabelsAsc = ['1 ★', '2 ★', '3 ★', '4 ★', '5 ★'];
+    const ratingCountsAsc = {{ analytics.rating_counts | tojson }};
+
+    new Chart(document.getElementById('ratingChart'), {
+        type: 'bar',
+        data: {
+            labels: ratingLabelsAsc.slice().reverse(),
+            datasets: [{
+                label: 'Number of ratings',
+                data: ratingCountsAsc.slice().reverse(),
+                backgroundColor: '#f59e0b',
+                borderRadius: 6,
+                maxBarThickness: 28,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gridColor } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+
+    } // end of "Chart is loaded" branch
+</script>
+
+<!-- Live updates: poll for changes and reload automatically, but only
+     when the admin isn't mid-filter-change or viewing a rating detail
+     modal, so nothing gets yanked away mid-interaction. -->
+<script>
+    let currentVersion = {{ version | tojson }};
+    const REPORT_POLL_MS = 1000;
+
+    function adminIsMidAction() {
+        const active = document.activeElement;
+        if (active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) return true;
+        if (document.querySelector('[id^="view-modal-"].flex')) return true; // a rating detail modal is open
+        return false;
+    }
+
+    async function checkReportForUpdates() {
+        try {
+            const res = await fetch("{{ url_for('admin_dashboard_version') }}", {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+
+            if (data.version !== currentVersion && !adminIsMidAction()) {
+                location.reload();
+            }
+        } catch (err) {
+            // Network hiccup — just try again on the next tick.
+        }
+    }
+
+    setInterval(checkReportForUpdates, REPORT_POLL_MS);
+</script>
+
+<!-- Size the logo so its width exactly matches the width of the
+     brand text block beside it. -->
+<script>
+    function syncLogoWidth() {
+        const img = document.getElementById('brandLogo');
+        const text = document.getElementById('brandText');
+        if (!img || !text) return;
+        const targetWidth = text.offsetWidth;
+        if (targetWidth > 0) {
+            img.style.width = targetWidth + 'px';
+            img.style.height = 'auto';
+        }
+    }
+    window.addEventListener('load', syncLogoWidth);
+    window.addEventListener('resize', syncLogoWidth);
+</script>
+
+</body>
+</html>
